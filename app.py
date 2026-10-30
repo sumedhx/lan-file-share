@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("LAN_SHARE_SECRET", os.urandom(32).hex())
 
-SHARE_DIR = Path.home() / "LAN-File-Share"
+SHARE_DIR = Path.home() / "storage/shared/LAN-File-Share"
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
 
 # MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1 GB per request
