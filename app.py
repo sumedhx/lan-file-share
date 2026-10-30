@@ -9,7 +9,9 @@ app.secret_key = os.environ.get("LAN_SHARE_SECRET", os.urandom(32).hex())
 SHARE_DIR = Path.home() / "LAN-File-Share"
 SHARE_DIR.mkdir(parents=True, exist_ok=True)
 
-MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1 GB per request
+# MAX_FILE_SIZE = 1024 * 1024 * 1024  # 1 GB per request
+MAX_FILE_SIZE = int(2.5 * 1024 * 1024 * 1024)  # 2.5 GB
+# MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024  # 5 GB
 
 
 @app.get("/")
