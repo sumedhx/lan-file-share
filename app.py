@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_from_directory, redirect, url_for, flash
+from flask import Flask, request, render_template, send_from_directory, redirect, url_for, flash, abort
 from pathlib import Path
 from werkzeug.utils import secure_filename
 import os
@@ -96,6 +96,56 @@ def mkdir():
     (folder / name).mkdir(exist_ok=False)
     return redirect(url_for("index", path=current))
 
+
+def get_safe_folder(relative_path=""):
+    root = SHARE_DIR.resolve()
+    folder = (root / relative_path).resolve()
+
+    if not folder.is_relative_to(root) or not folder.is_dir():
+        abort(400, "Invalid folder")
+
+    return folder
+
+@app.post("/upload-folder")
+def upload_folder():
+    current = request.form.get("path", "")
+    folder = get_safe_folder(current)
+
+    files = request.files.getlist("files")
+
+    for file in files:
+        if not file.filename:
+            continue
+
+        # Browser supplies paths such as Photos/Subfolder/image.jpg
+        relative_path = Path(file.filename)
+
+        # Reject unsafe paths
+        if relative_path.is_absolute() or ".." in relative_path.parts:
+            abort(400, "Invalid file path")
+
+        # Keep the selected folder's name
+        destination = (folder / relative_path).resolve()
+
+        if not destination.is_relative_to(folder):
+            abort(400, "Invalid file path")
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+
+        # Avoid overwriting existing files
+        if destination.exists():
+            stem = destination.stem
+            suffix = destination.suffix
+            parent = destination.parent
+            counter = 1
+
+            while destination.exists():
+                destination = parent / f"{stem}_{counter}{suffix}"
+                counter += 1
+
+        file.save(destination)
+
+    return "", 200
 
 if __name__ == "__main__":
     app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_SIZE

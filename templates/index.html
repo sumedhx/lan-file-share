@@ -90,12 +90,28 @@
 
                     <input id="file-input" type="file" name="files" multiple hidden>
 
+                    <input
+                        type="file"
+                        id="folderInput"
+                        webkitdirectory
+                        directory
+                        multiple
+                        hidden
+                    >
+
                     <div class="drop-zone" id="drop-zone">
                         <div class="upload-illustration">⇧</div>
                         <h3>Drop files here</h3>
                         <p>or select files from your device</p>
                         <button class="button button-primary" type="button" data-action="browse">
                             Browse files
+                        </button>
+                        <button
+                            class="button button-primary"
+                            type="button"
+                            onclick="document.getElementById('folderInput').click()"
+                        >
+                            Upload Folder
                         </button>
                         <span class="drop-hint">Multiple files supported</span>
                     </div>

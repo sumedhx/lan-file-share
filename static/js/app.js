@@ -195,3 +195,39 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 });
+
+const folderInput = document.getElementById("folderInput");
+
+folderInput.addEventListener("change", async () => {
+    const files = Array.from(folderInput.files);
+
+    if (!files.length) return;
+
+    const formData = new FormData();
+
+    const currentPath =
+        new URLSearchParams(window.location.search).get("path") || "";
+
+    formData.append("path", currentPath);
+
+    for (const file of files) {
+        formData.append("files", file, file.webkitRelativePath);
+    }
+
+    try {
+        const response = await fetch("/upload-folder", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        window.location.reload();
+    } catch (error) {
+        alert("Folder upload failed: " + error.message);
+    } finally {
+        folderInput.value = "";
+    }
+});
