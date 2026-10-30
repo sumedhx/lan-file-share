@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b1118">
+    <title>LAN File Share</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+
+<body>
+<div class="app">
+
+    <aside class="sidebar">
+        <a href="/" class="brand">
+            <span class="brand-icon">⇄</span>
+            <span>
+                <strong>LAN Share</strong>
+                <small>Local file transfer</small>
+            </span>
+        </a>
+
+        <nav class="sidebar-nav">
+            <a href="#files" class="nav-link active">▦ <span>My Files</span></a>
+            <button type="button" class="nav-link" data-action="upload">↑ <span>Upload Files</span></button>
+            <button type="button" class="nav-link" data-action="folder">＋ <span>New Folder</span></button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span class="status-dot"></span>
+            <span>Local network sharing</span>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div>
+                <p class="eyebrow">YOUR PERSONAL FILE HUB</p>
+                <h1>File Manager</h1>
+                <p class="subtitle">Move files between your phone and computer.</p>
+            </div>
+
+            <div class="connection-badge">
+                <span class="status-dot"></span>
+                Server connection
+            </div>
+        </header>
+
+        <div class="content">
+
+            <section class="stats-grid">
+                <article class="stat-card">
+                    <span class="stat-label">ITEMS IN FOLDER</span>
+                    <strong class="stat-value">{{ items|length }}</strong>
+                    <span class="stat-description">Files and folders</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">CURRENT DIRECTORY</span>
+                    <strong class="stat-value directory-name">
+                        {{ current if current else "Shared Files" }}
+                    </strong>
+                    <span class="stat-description">Phone storage</span>
+                </article>
+
+                <article class="stat-card">
+                    <span class="stat-label">TRANSFER MODE</span>
+                    <strong class="stat-value transfer-value">Two-way ↔</strong>
+                    <span class="stat-description">Upload and download</span>
+                </article>
+            </section>
+
+            <section class="panel upload-panel" id="upload-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2>Send files to phone</h2>
+                        <p>Select files on this device to upload.</p>
+                    </div>
+                    <span class="panel-icon">↑</span>
+                </div>
+
+                <form id="upload-form"
+                      action="{{ url_for('upload') }}"
+                      method="post"
+                      enctype="multipart/form-data">
+
+                    <input type="hidden" name="path" value="{{ current }}">
+
+                    <input id="file-input" type="file" name="files" multiple hidden>
+
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="upload-illustration">⇧</div>
+                        <h3>Drop files here</h3>
+                        <p>or select files from your device</p>
+                        <button class="button button-primary" type="button" data-action="browse">
+                            Browse files
+                        </button>
+                        <span class="drop-hint">Multiple files supported</span>
+                    </div>
+                </form>
+
+                <div id="upload-list" class="upload-list" aria-live="polite"></div>
+            </section>
+
+            <section class="panel" id="files">
+                <div class="panel-header files-header">
+                    <div>
+                        <h2>Your files</h2>
+                        <p>Browse and download files stored on your phone.</p>
+                    </div>
+
+                    <button type="button" class="button button-secondary" data-action="folder">
+                        + New folder
+                    </button>
+                </div>
+
+                <div id="folder-panel" class="folder-panel" hidden>
+                    <form action="{{ url_for('mkdir') }}" method="post" class="folder-form">
+                        <input type="hidden" name="path" value="{{ current }}">
+                        <input type="text" name="name" placeholder="Folder name" maxlength="100" required>
+                        <button type="submit" class="button button-primary">Create</button>
+                        <button type="button" class="button button-secondary" data-action="folder">Cancel</button>
+                    </form>
+                </div>
+
+                <div class="breadcrumbs">
+                    <span>📂</span>
+                    <a href="{{ url_for('index') }}">Shared Files</a>
+
+                    {% if current %}
+                        {% for part in current.split('/') %}
+                            <span class="breadcrumb-separator">/</span>
+                            {% set partial_path = current.split('/')[:loop.index]|join('/') %}
+                            {% if loop.last %}
+                                <span>{{ part }}</span>
+                            {% else %}
+                                <a href="{{ url_for('index', path=partial_path) }}">{{ part }}</a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+                <div class="file-table-wrap">
+                    <table class="file-table">
+                        <thead>
+                            <tr>
+                                <th>NAME</th>
+                                <th>SIZE</th>
+                                <th class="actions-heading">ACTION</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% if current %}
+                            <tr>
+                                <td colspan="3">
+                                    <a class="back-link"
+                                       href="{{ url_for('index', path=current.rsplit('/', 1)[0] if '/' in current else '') }}">
+                                        ← Back to parent folder
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <div class="file-cell">
+                                        <span class="file-icon">{{ '📁' if item.is_dir else '📄' }}</span>
+
+                                        {% if item.is_dir %}
+                                            <a class="file-name"
+                                               href="{{ url_for('index', path=(current + '/' if current else '') + item.name) }}">
+                                                {{ item.name }}
+                                            </a>
+                                        {% else %}
+                                            <span class="file-name">{{ item.name }}</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+
+                                <td class="file-size">
+                                    {% if item.is_dir %}
+                                        Folder
+                                    {% elif item.size < 1024 %}
+                                        {{ item.size }} B
+                                    {% elif item.size < 1048576 %}
+                                        {{ "%.1f"|format(item.size / 1024) }} KB
+                                    {% else %}
+                                        {{ "%.1f"|format(item.size / 1048576) }} MB
+                                    {% endif %}
+                                </td>
+
+                                <td class="actions-cell">
+                                    {% if item.is_dir %}
+                                        <a class="button button-small button-secondary"
+                                           href="{{ url_for('index', path=(current + '/' if current else '') + item.name) }}">
+                                            Open →
+                                        </a>
+                                    {% else %}
+                                        <a class="button button-small button-primary"
+                                           href="{{ url_for('download', filename=item.name, path=current) }}">
+                                            ↓ Download
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="empty-state">
+                                    <span>📂</span>
+                                    <strong>No files here yet</strong>
+                                    <p>Upload a file to get started.</p>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <footer class="page-footer">
+                <span>LAN Share</span>
+                <span>Designed for local file transfers</span>
+            </footer>
+
+        </div>
+    </main>
+</div>
+
+<nav class="mobile-nav">
+    <a href="#files">▦<span>Files</span></a>
+    <button type="button" data-action="upload">↑<span>Upload</span></button>
+    <button type="button" data-action="folder">＋<span>New folder</span></button>
+</nav>
+
+</body>
+</html>
